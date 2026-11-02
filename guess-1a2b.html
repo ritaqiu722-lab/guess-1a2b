@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>幾A幾B｜版本二</title>
+  <style>
+    :root {font-family:system-ui,"Microsoft JhengHei",sans-serif;color:#23443d;background:#f4f2e9;line-height:1.7}
+    * {box-sizing:border-box}
+    body {margin:0;min-height:100vh;display:grid;place-items:center;padding:28px 16px}
+    main {width:min(100%,580px)}
+    .eyebrow {margin:0 0 8px;font-size:13px;letter-spacing:.12em;color:#576b5f}
+    h1 {font-size:clamp(32px,7vw,46px);line-height:1.25;margin:0 0 14px}
+    .intro {margin:0 0 24px;color:#50645b}
+    .card {padding:clamp(24px,5vw,38px);background:#fff;border:1px solid #d1dcd1;border-radius:26px;box-shadow:0 16px 50px #274b3e0a}
+    .range {display:flex;align-items:center;justify-content:center;gap:12px;padding:10px 0 20px;font-size:28px;font-weight:750}
+    .range span {color:#839487;font-size:16px;font-weight:400}
+    label {display:block;font-weight:650;margin-bottom:10px}
+    input {width:100%;font:700 36px/1.4 system-ui;text-align:center;letter-spacing:.3em;padding:14px;border:2px solid #a3b9ac;border-radius:14px;color:#23443d;background:#fbfcf8}
+    input::placeholder {color:#9ba69e;font-weight:400;letter-spacing:.1em}
+    input:disabled {opacity:.6}
+    button {font:inherit;font-weight:650;border-radius:12px;padding:13px 18px;cursor:pointer;min-height:50px}
+    .submit {width:100%;margin-top:14px;border:1px solid #315e4f;background:#315e4f;color:white}
+    .reset {border:1px solid #a6b9ab;color:#315e4f;background:transparent}
+    button:disabled {opacity:.5;cursor:default}
+    :focus-visible {outline:3px solid #a86731;outline-offset:4px}
+    #feedback {display:flex;align-items:center;justify-content:center;text-align:center;min-height:94px;border-radius:14px;background:#edf2eb;padding:18px;margin:24px 0;color:#355a4b;font-size:20px;font-weight:650}
+    #feedback[data-tone=error] {background:#f8e9e1;color:#853b29}
+    #feedback[data-tone=win] {background:#dcebd7;color:#28512a}
+    .history-title {font-size:14px;font-weight:650;color:#576b5f;margin:0 0 8px}
+    #history {list-style:none;margin:0 0 22px;padding:0;max-height:240px;overflow-y:auto}
+    #history li {display:flex;justify-content:space-between;align-items:center;padding:8px 14px;border-bottom:1px solid #e3ebe3;font-size:18px}
+    #history li:last-child {border-bottom:0}
+    #history .g {font-weight:750;letter-spacing:.25em;font-variant-numeric:tabular-nums}
+    #history .r {font-weight:650;color:#315e4f}
+    #history .n {font-size:13px;color:#839487;min-width:2.5em}
+    .empty {color:#839487;font-size:14px;padding:8px 14px}
+    .dbg-toggle {display:flex;align-items:center;gap:8px;margin:18px 0 0;font-size:14px;font-weight:500;color:#5b6b61;cursor:pointer}
+    .dbg-toggle input {width:auto;font:inherit;letter-spacing:normal;padding:0;margin:0;accent-color:#a86731}
+    #debug-panel {margin:14px 0 0;padding:14px 16px;border:2px dashed #a86731;border-radius:14px;background:#fbf3ea;color:#6b3f17;font-size:14px;line-height:1.8}
+    #debug-panel[hidden] {display:none}
+    #debug-panel .ans {font-size:28px;font-weight:800;letter-spacing:.3em;font-variant-numeric:tabular-nums}
+    #debug-panel code {font-family:ui-monospace,Menlo,Consolas,monospace}
+    .footer {display:flex;gap:18px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+    .note {font-size:13px;color:#5b6b61;margin:22px 4px 0}
+    .small {font-size:14px;color:#5b6b61}
+    @media(prefers-reduced-motion:no-preference) {button{transition:background .15s}.submit:hover:not(:disabled){background:#244d40}}
+  </style>
+</head>
+<body>
+<main>
+  <p class="eyebrow">數位科技概論 · 版本二</p>
+  <h1>幾A幾B</h1>
+  <p class="intro">電腦已選好 4 個<strong>不重複</strong>的數字（0～9，可以 0 開頭）。<br>
+    <strong>A</strong>：數字和位置都正確；<strong>B</strong>：數字正確，但位置不對。</p>
+  <section class="card" aria-label="幾A幾B遊戲">
+    <div class="range" aria-hidden="true">0 <span>～</span> 9 <span>· 共 4 位 · 不重複</span></div>
+    <form id="guess-form" novalidate>
+      <label for="guess">你猜的 4 位數字</label>
+      <input id="guess" type="text" inputmode="numeric" maxlength="4" autocomplete="off" placeholder="例如 1234" aria-describedby="feedback">
+      <button class="submit" id="submit" type="submit">猜看看</button>
+    </form>
+    <p id="feedback" role="status" aria-live="polite" aria-atomic="true">準備好了！先猜一組 4 位數字吧。</p>
+    <p class="history-title">猜測紀錄（<span id="count">0</span> 次）</p>
+    <ul id="history" aria-label="猜測紀錄"><li class="empty">還沒有紀錄</li></ul>
+    <div class="footer"><button class="reset" id="restart" type="button">重新開始</button><span class="small">也可以按 Enter 送出</span></div>
+    <label class="dbg-toggle"><input type="checkbox" id="debug-toggle"> 除錯模式（顯示答案與判定細節）</label>
+    <div id="debug-panel" hidden>
+      <div>🐞 答案：<span class="ans" id="debug-answer"></span></div>
+      <div id="debug-detail">最近一次判定：尚未猜測</div>
+      <div>同時會在瀏覽器主控台（F12 → Console）輸出紀錄。</div>
+    </div>
+  </section>
+  <p class="note">這一版沒有帳號或存檔。重新開始、重新整理或關閉頁面後再開啟，都會重新抽選答案，不會保留紀錄。</p>
+</main>
+<script>
+'use strict';
+const form = document.getElementById('guess-form');
+const input = document.getElementById('guess');
+const submit = document.getElementById('submit');
+const feedback = document.getElementById('feedback');
+const restart = document.getElementById('restart');
+const historyList = document.getElementById('history');
+const countEl = document.getElementById('count');
+const LENGTH = 4;
+let answer;
+let finished;
+let tries;
+
+// ---- 除錯模式 ----
+// 開啟方式：勾選畫面上的「除錯模式」，或在網址後加 ?debug=1
+const debugToggle = document.getElementById('debug-toggle');
+const debugPanel = document.getElementById('debug-panel');
+const debugAnswer = document.getElementById('debug-answer');
+const debugDetail = document.getElementById('debug-detail');
+let debug = new URLSearchParams(location.search).get('debug') === '1';
+
+function dlog() {
+  if (debug) console.log.apply(console, ['[1A2B debug]'].concat([].slice.call(arguments)));
+}
+
+function renderDebug() {
+  debugToggle.checked = debug;
+  debugPanel.hidden = !debug;
+  debugAnswer.textContent = answer || '';
+}
+
+function debugDescribe(guess) {
+  // 逐位列出判定，例如：1→A, 3→B, 5→－
+  const parts = [];
+  for (let i = 0; i < LENGTH; i++) {
+    const mark = guess[i] === answer[i] ? 'A' : (answer.includes(guess[i]) ? 'B' : '－');
+    parts.push(guess[i] + '→' + mark);
+  }
+  return parts.join('，');
+}
+
+debugToggle.addEventListener('change', function () {
+  debug = debugToggle.checked;
+  renderDebug();
+  dlog('除錯模式開啟，目前答案 =', answer);
+});
+
+// 從 0～9 洗牌後取前 4 個，確保不重複
+function pickAnswer() {
+  const digits = ['0','1','2','3','4','5','6','7','8','9'];
+  for (let i = digits.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [digits[i], digits[j]] = [digits[j], digits[i]];
+  }
+  return digits.slice(0, LENGTH).join('');
+}
+
+function setFeedback(text, tone) {
+  feedback.textContent = text;
+  if (tone) feedback.dataset.tone = tone; else delete feedback.dataset.tone;
+}
+
+// 計算 A、B
+function judge(guess) {
+  let a = 0, b = 0;
+  for (let i = 0; i < LENGTH; i++) {
+    if (guess[i] === answer[i]) a++;
+    else if (answer.includes(guess[i])) b++;
+  }
+  return { a, b };
+}
+
+function addHistory(guess, a, b) {
+  if (tries === 1) historyList.innerHTML = '';
+  const li = document.createElement('li');
+  li.innerHTML = '<span class="n"></span><span class="g"></span><span class="r"></span>';
+  li.querySelector('.n').textContent = '#' + tries;
+  li.querySelector('.g').textContent = guess;
+  li.querySelector('.r').textContent = a + 'A' + b + 'B';
+  historyList.prepend(li);
+}
+
+function validate(text) {
+  if (text === '') return '請先輸入 4 位數字。';
+  if (!/^\d+$/.test(text)) return '只能輸入 0～9 的數字喔。';
+  if (text.length !== LENGTH) return '需要剛好 4 位數字（目前 ' + text.length + ' 位）。';
+  if (new Set(text).size !== LENGTH) return '數字不能重複，請換一組。';
+  return '';
+}
+
+function start() {
+  answer = pickAnswer();
+  finished = false;
+  tries = 0;
+  input.value = '';
+  input.disabled = false;
+  submit.disabled = false;
+  historyList.innerHTML = '<li class="empty">還沒有紀錄</li>';
+  countEl.textContent = '0';
+  setFeedback('準備好了！先猜一組 4 位數字吧。');
+  debugDetail.textContent = '最近一次判定：尚未猜測';
+  renderDebug();
+  dlog('新的一局，答案 =', answer);
+  input.focus();
+}
+
+form.addEventListener('submit', function (e) {
+  e.preventDefault();
+  if (finished) return;
+  const text = input.value.trim();
+  const error = validate(text);
+  if (error) {
+    setFeedback(error, 'error');
+    input.focus();
+    input.select();
+    return;
+  }
+  tries++;
+  const { a, b } = judge(text);
+  countEl.textContent = String(tries);
+  addHistory(text, a, b);
+  debugDetail.textContent = '最近一次判定（' + text + '）：' + debugDescribe(text) + ' ⇒ ' + a + 'A' + b + 'B';
+  dlog('第', tries, '次', text, '=>', a + 'A' + b + 'B', '|', debugDescribe(text));
+  if (a === LENGTH) {
+    finished = true;
+    input.disabled = true;
+    submit.disabled = true;
+    setFeedback('4A0B！答對了，答案是 ' + answer + '，你猜了 ' + tries + ' 次。', 'win');
+  } else {
+    setFeedback(a + 'A' + b + 'B', null);
+    input.value = '';
+    input.focus();
+  }
+});
+
+restart.addEventListener('click', start);
+start();
+</script>
+</body>
+</html>
